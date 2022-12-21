@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import appConfig from 'src/config/app.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validate } from 'src/config/env.validation';
+import appConfig from 'src/config/app.config';
+import databaseConfig from 'src/config/database.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      load: [appConfig],
+      load: [appConfig, databaseConfig],
       cache: true,
       validate,
     }),
