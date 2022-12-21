@@ -1,2 +1,10 @@
+# App
 NODE_ENV=development
 PORT=3001
+
+# Database
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin
+POSTGRES_DB=users
