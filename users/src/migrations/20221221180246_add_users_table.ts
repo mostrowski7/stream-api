@@ -5,11 +5,10 @@ export async function up(knex: Knex): Promise<void> {
         CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
         CREATE TABLE users (
             id  UUID DEFAULT uuid_generate_v4(),
-            name TEXT NOT NULL,
-            email TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL,
-            PRIMARY KEY (id),
-            UNIQUE (name, email)
+            PRIMARY KEY (id)
         )
     `);
 }
