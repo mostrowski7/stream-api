@@ -6,6 +6,10 @@ import { CONNECTION_POOL } from './database.module-definition';
 class DatabaseService {
   constructor(@Inject(CONNECTION_POOL) private readonly pool: Pool) {}
 
+  getPool(): Pool {
+    return this.pool;
+  }
+
   async runQuery(query: string, params?: unknown[]) {
     return this.pool.query(query, params);
   }
