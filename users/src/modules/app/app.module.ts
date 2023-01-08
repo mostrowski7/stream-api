@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { validate } from 'src/config/env.validation';
-import appConfig from 'src/config/app.config';
+import { Environment, validate } from '../../config/env.validation';
+import appConfig from '../../config/app.config';
 import DatabaseModule from '../database/database.module';
 import { UsersModule } from '../users/users.module';
 
@@ -18,7 +18,10 @@ import { UsersModule } from '../users/users.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        host: configService.get('POSTGRES_HOST'),
+        host:
+          configService.get('NODE_ENV') === Environment.Test
+            ? configService.get('POSTGRES_TEST_HOST')
+            : configService.get('POSTGRES_HOST'),
         port: configService.get('POSTGRES_PORT'),
         user: configService.get('POSTGRES_USER'),
         password: configService.get('POSTGRES_PASSWORD'),
