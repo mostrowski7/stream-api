@@ -14,19 +14,19 @@ $ docker-compose up -d
 
 ```
 
-## Migrations
+## Migration
 
 ```bash
 
-$ docker-compose run <name> npm run migration
+$ docker-compose run api npm run migration
 
 ```
 
-## Tests
+## Test
 
 ```bash
 
-$ docker-compose run <name> npm run test
+$ docker-compose run api npm run test
 
 ```
 
