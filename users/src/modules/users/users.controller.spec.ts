@@ -1,39 +1,41 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  ConflictException,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test as NestTest, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import * as request from 'supertest';
 import { CreateUserDto } from './dto/create-user.dto';
 import UsersRepository from './users.repository';
-import { AppModule } from '../app/app.module';
 import DatabaseService from '../database/database.service';
+import { v4 as uuid } from 'uuid';
 
 describe('UsersController', () => {
   let app: INestApplication,
     createUserDto: CreateUserDto,
-    databaseService: DatabaseService,
-    usersService: UsersService;
+    runQueryMock: jest.Mock;
 
   beforeEach(async () => {
+    runQueryMock = jest.fn();
     const module: TestingModule = await NestTest.createTestingModule({
-      imports: [AppModule],
       controllers: [UsersController],
-      providers: [UsersService, UsersRepository],
-    })
-      .overrideProvider(UsersService)
-      .useValue(usersService)
-      .compile();
-
-    databaseService = module.get(DatabaseService);
+      providers: [
+        UsersService,
+        UsersRepository,
+        {
+          provide: DatabaseService,
+          useValue: {
+            runQuery: runQueryMock,
+          },
+        },
+      ],
+    }).compile();
 
     app = module.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
     await app.init();
-  });
-
-  afterEach(async () => {
-    await databaseService.runQuery('DELETE FROM users');
-    await databaseService.getPool().end();
   });
 
   afterAll(async () => {
@@ -50,6 +52,18 @@ describe('UsersController', () => {
     });
 
     describe('when created successfully', () => {
+      beforeEach(() => {
+        const userRawData = {
+          id: uuid(),
+          name: createUserDto.name,
+          email: createUserDto.email,
+        };
+
+        runQueryMock.mockResolvedValue({
+          rows: [userRawData],
+        });
+      });
+
       it('should return status 201 and user data', async () => {
         const response = await request(app.getHttpServer())
           .post('/users')
@@ -74,9 +88,13 @@ describe('UsersController', () => {
       });
     });
 
-    describe('when throw an error', () => {
-      it('should return status 409 and message user already exists', async () => {
-        await request(app.getHttpServer()).post('/users').send(createUserDto);
+    describe('when user already exists', () => {
+      beforeEach(() => {
+        runQueryMock.mockRejectedValue(
+          new ConflictException('User already exists'),
+        );
+      });
+      it('should return status 409 and message', async () => {
         const response = await request(app.getHttpServer())
           .post('/users')
           .send(createUserDto);
@@ -86,11 +104,17 @@ describe('UsersController', () => {
           message: 'User already exists',
         });
       });
+    });
 
-      it('should return status 400 and message invalid email', async () => {
+    describe('when email is invalid', () => {
+      it('should return status 400 and message', async () => {
         const response = await request(app.getHttpServer())
           .post('/users')
-          .send({ ...createUserDto, email: 'invalid' });
+          .send({
+            name: createUserDto.name,
+            password: createUserDto.password,
+            email: 'invalid',
+          });
 
         expect(response.body).toMatchObject({
           statusCode: 400,

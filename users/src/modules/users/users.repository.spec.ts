@@ -4,7 +4,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
 import UsersRepository from './users.repository';
 import { v4 as uuid } from 'uuid';
-import { ConflictException } from '@nestjs/common/exceptions';
+import {
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common/exceptions';
 import DatabaseErrorCode from '../database/database.errors';
 
 describe('UsersRepository', () => {
@@ -13,7 +16,7 @@ describe('UsersRepository', () => {
   const createUserData: CreateUserDto = {
     name: 'user',
     email: 'user@gmail.com',
-    password: 'password123',
+    password: 'password',
   };
 
   beforeEach(async () => {
@@ -32,8 +35,8 @@ describe('UsersRepository', () => {
     usersRepository = module.get(UsersRepository);
   });
 
-  describe('UsersRepository.create method', () => {
-    describe('when database return valid data', () => {
+  describe('create method', () => {
+    describe('when return valid data', () => {
       let createdUser: User;
 
       beforeEach(() => {
@@ -51,11 +54,13 @@ describe('UsersRepository', () => {
 
       it('should return instance of User', async () => {
         const result = await usersRepository.create(createUserData);
+
         expect(result instanceof User).toBe(true);
       });
 
-      it('should return user data', async () => {
+      it('should return created user data', async () => {
         const result = await usersRepository.create(createUserData);
+
         expect(result).toEqual(createdUser);
       });
     });
@@ -67,9 +72,8 @@ describe('UsersRepository', () => {
         });
       });
 
-      it('should throw user already exists conflict exception', async () => {
-        const result = usersRepository.create(createUserData);
-        expect(result).rejects.toThrow(
+      it('should throws conflict exception', async () => {
+        await expect(usersRepository.create(createUserData)).rejects.toThrow(
           new ConflictException('User already exists'),
         );
       });
@@ -82,10 +86,9 @@ describe('UsersRepository', () => {
         });
       });
 
-      it('should throw some fields are empty bad request exception', async () => {
-        const result = usersRepository.create(createUserData);
-        expect(result).rejects.toThrow(
-          new ConflictException('Some fields are empty'),
+      it('should throws bad request exception', async () => {
+        await expect(usersRepository.create(createUserData)).rejects.toThrow(
+          new BadRequestException('Some fields are empty'),
         );
       });
     });
