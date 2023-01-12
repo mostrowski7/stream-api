@@ -1,16 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CreateUserDto } from './dto/create-user.dto';
+import { InternalServerErrorException } from '@nestjs/common';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
-import { v4 as uuid } from 'uuid';
 import UsersRepository from './users.repository';
-import { InternalServerErrorException } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { v4 as uuid } from 'uuid';
+import { ConflictException } from '@nestjs/common/exceptions/conflict.exception';
+import { BadRequestException } from '@nestjs/common/exceptions/bad-request.exception';
 
 describe('UsersService', () => {
   const createUserData: CreateUserDto = {
     name: 'user',
     email: 'user@gmail.com',
-    password: 'password123',
+    password: 'password',
   };
   let usersService: UsersService;
   let createUserMock: jest.Mock;
@@ -32,50 +34,65 @@ describe('UsersService', () => {
     usersService = module.get<UsersService>(UsersService);
   });
 
-  it('should be defined', () => {
-    expect(usersService).toBeDefined();
-  });
+  describe('create method', () => {
+    describe('when successfully create user', () => {
+      let createdUser: User;
 
-  describe('UsersService.create method', () => {
-    let createdUser: User;
+      beforeEach(async () => {
+        createdUser = {
+          id: uuid(),
+          name: 'user',
+          email: 'user@gmail.com',
+          password:
+            '$2b$10$wd2FKgUyIztkelRHpkX7RuJN2ZgVMFBTr/BABiaqkSzDs3eZR9YWO',
+        };
+      });
 
-    beforeEach(async () => {
-      createdUser = {
-        id: uuid(),
-        name: 'user',
-        email: 'user@gmail.com',
-        password:
-          '$2b$10$wd2FKgUyIztkelRHpkX7RuJN2ZgVMFBTr/BABiaqkSzDs3eZR9YWO',
-      };
+      it('should return created user data', async () => {
+        createUserMock.mockResolvedValue(createdUser);
+
+        const result = await usersService.create(createUserData);
+
+        expect(result).toEqual(createdUser);
+      });
     });
 
-    it('should be called with expected params', async () => {
-      const createUserSpy = jest.spyOn(usersService, 'create');
-      await usersService.create(createUserData);
-      expect(createUserSpy).toHaveBeenCalledWith(createUserData);
+    describe('when user already exists', () => {
+      it('should throws conflict exception', async () => {
+        createUserMock.mockRejectedValue(
+          new ConflictException('User already exists'),
+        );
+
+        await expect(usersService.create(createUserData)).rejects.toThrow(
+          new ConflictException('User already exists'),
+        );
+      });
     });
 
-    it('should return created user data', async () => {
-      createUserMock.mockResolvedValue(createdUser);
-      const result = await usersService.create(createUserData);
-      expect(result).toEqual(createdUser);
+    describe('when required field is empty', () => {
+      it('should throws bad request exception', async () => {
+        createUserMock.mockRejectedValue(
+          new BadRequestException('Some fields are empty'),
+        );
+
+        await expect(usersService.create(createUserData)).rejects.toThrow(
+          new BadRequestException('Some fields are empty'),
+        );
+      });
     });
 
-    it('should throws an error when password hash is not correct', async () => {
-      createUserMock.mockRejectedValue(
-        new InternalServerErrorException('Cannot hash password'),
-      );
-      try {
-        usersService.create({
-          name: null,
-          email: createUserData.email,
-          password: createUserData.password,
-        });
-      } catch (e) {
-        expect(e).rejects.toThrow(
+    describe('when password hashing fails', () => {
+      it('should throws internal server error exception', async () => {
+        jest
+          .spyOn(usersService, 'hashPassword')
+          .mockRejectedValue(
+            new InternalServerErrorException('Cannot hash password'),
+          );
+
+        await expect(usersService.create(createUserData)).rejects.toThrow(
           new InternalServerErrorException('Cannot hash password'),
         );
-      }
+      });
     });
   });
 });
