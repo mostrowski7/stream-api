@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   ConflictException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common/exceptions';
 import { plainToInstance } from 'class-transformer';
 import DatabaseErrorCode from '../database/database.errors';
@@ -31,6 +32,20 @@ class UsersRepository {
         throw new BadRequestException('Some fields are empty');
       throw error;
     }
+  }
+
+  async findByEmail(email: string): Promise<User> {
+    const databaseResponse = await this.databaseService.runQuery(
+      `
+        SELECT * FROM users
+        WHERE email = $1
+      `,
+      [email],
+    );
+
+    if (databaseResponse?.rowCount === 0)
+      throw new NotFoundException('User not found');
+    return plainToInstance(User, databaseResponse.rows[0]);
   }
 }
 
