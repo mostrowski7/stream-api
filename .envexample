@@ -1,6 +1,8 @@
 # App
 NODE_ENV=development
 PORT=3001
+JWT_SECRET=secret
+JWT_REFRESH_SECRET=secret
 
 # Database
 POSTGRES_HOST=postgres

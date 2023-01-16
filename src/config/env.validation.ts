@@ -28,6 +28,12 @@ class EnvironmentVariables {
 
   @IsString()
   POSTGRES_DB: string;
+
+  @IsString()
+  JWT_SECRET: string;
+
+  @IsString()
+  JWT_REFRESH_SECRET: string;
 }
 
 export function validate(config: Record<string, unknown>) {
