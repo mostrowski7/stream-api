@@ -8,9 +8,10 @@ import { AppModule } from './modules/app/app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get<ConfigService>(ConfigService);
 
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: configService.get<string>('CORS_ORIGIN'),
     credentials: true,
   });
   app.use(cookieParser());
@@ -23,7 +24,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  const configService = app.get<ConfigService>(ConfigService);
   await app.listen(configService.get<number>('app.port'));
 }
 bootstrap();
