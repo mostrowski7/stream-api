@@ -16,7 +16,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "migration": "knex migrate:up --knexfile src/config/knex.config.ts",
     "migration:test": "cross-env NODE_ENV=test knex migrate:up --knexfile src/config/knex.config.ts",
-    "test": "jest",
+    "test": "cross-env DOTENV_CONFIG_PATH=.env-test jest --setupFiles dotenv/config", 
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
