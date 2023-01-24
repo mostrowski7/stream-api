@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login-dto';
 import { Payload } from './auth.interface';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -22,9 +23,15 @@ export class AuthService {
 
       await this.compareUserPasswords(password, user.password);
 
+      const refreshToken = await this.getRefreshToken(user.id);
+
       return {
-        accessToken: this.jwtSign({ sub: user.id, email, name: user.name }),
-        refreshToken: this.getRefreshToken(user.id),
+        accessToken: this.getAccessToken({
+          sub: user.id,
+          email,
+          name: user.name,
+        }),
+        refreshToken,
       };
     } catch (error) {
       throw new UnauthorizedException();
@@ -36,19 +43,48 @@ export class AuthService {
     if (!isCorrect) throw new UnauthorizedException();
   }
 
-  jwtSign(payload: Payload): string {
-    return this.jwtService.sign(payload);
+  async getAuthenticatedUser(id: string, refreshToken: string): Promise<User> {
+    const user = await this.usersService.getById(id);
+
+    if (user && (await bcrypt.compare(refreshToken, user.refreshToken))) {
+      return user;
+    }
   }
 
-  getRefreshToken(sub: string): string {
-    return this.jwtService.sign(
+  getAccessToken(payload: Payload): string {
+    return this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: this.configService.get<string>('JWT_EXPIRATION_TIME'),
+    });
+  }
+
+  async getRefreshToken(sub: string): Promise<string> {
+    const refreshToken = this.jwtService.sign(
       {
         sub,
       },
       {
-        secret: this.configService.get<string>('app.jwtRefreshSecret'),
-        expiresIn: '1d',
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: this.configService.get<string>(
+          'JWT_REFRESH_EXPIRATION_TIME',
+        ),
       },
     );
+
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+    await this.usersService.update(sub, {
+      refreshToken: hashedRefreshToken,
+    });
+
+    return refreshToken;
+  }
+
+  async getRefreshTokenCookie(refreshToken: string): Promise<string> {
+    const expirationTime = this.configService.get<number>(
+      'JWT_REFRESH_EXPIRATION_TIME',
+    );
+
+    return `refreshToken=${refreshToken}; Secure; HttpOnly; Path=/; Max-Age=${expirationTime}`;
   }
 }

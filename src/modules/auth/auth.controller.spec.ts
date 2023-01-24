@@ -3,20 +3,34 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import * as request from 'supertest';
+import * as cookieParser from 'cookie-parser';
+import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login-dto';
+import DatabaseService from '../database/database.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import DatabaseService from '../database/database.service';
 import { UsersService } from '../users/users.service';
 import UsersRepository from '../users/users.repository';
-import * as bcrypt from 'bcrypt';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtRefreshTokenStrategy } from './strategies/jwt-refresh-token.strategy';
+import {
+  runQueryMock,
+  getUpdateParamsAndColumnsMock,
+} from '../database/database.mock';
 
 describe('AuthController', () => {
-  let app: INestApplication, loginDto: LoginDto, runQueryMock: jest.Mock;
+  const userRow = {
+    id: 'd2771ffe-8834-4c16-ba1b-9097e5a9f1d2',
+    email: 'user@gmail.com',
+    name: 'user',
+    password: '$2b$10$E0QnOkL0M7zNDh4jpiViY.TNPGnokaW838iw7HsYWHAkh7FnroskW',
+    refreshToken:
+      '$2b$10$gI8lA4stVVjPaUGnzLt7vONWTBApWcNNTV32f5L9ZurmyOzhLrshe',
+  };
+  let app: INestApplication, loginDto: LoginDto, refreshTokenCookie: string;
 
   beforeEach(async () => {
-    runQueryMock = jest.fn();
-    const moduleRef: TestingModule = await Test.createTestingModule({
+    const module: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot(),
         JwtModule.register({
@@ -32,13 +46,18 @@ describe('AuthController', () => {
           provide: DatabaseService,
           useValue: {
             runQuery: runQueryMock,
+            getUpdateParamsAndColumns: getUpdateParamsAndColumnsMock,
           },
         },
+        JwtStrategy,
+        JwtRefreshTokenStrategy,
       ],
     }).compile();
 
-    app = moduleRef.createNestApplication();
+    app = module.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());
+    app.use(cookieParser());
+
     await app.init();
   });
 
@@ -48,6 +67,16 @@ describe('AuthController', () => {
         email: 'user@gmail.com',
         password: 'password',
       };
+
+      runQueryMock.mockResolvedValue({
+        rowCount: 1,
+        rows: [userRow],
+      });
+
+      getUpdateParamsAndColumnsMock.mockReturnValue({
+        columns: 'refresh_token = $2',
+        params: ['hashedRefreshToken'],
+      });
     });
 
     describe('when email is invalid', () => {
@@ -78,11 +107,16 @@ describe('AuthController', () => {
       });
     });
 
-    describe('when user data is not correct', () => {
+    describe('when user not found', () => {
       it('should return status 401 and message', async () => {
+        runQueryMock.mockResolvedValueOnce({
+          rowCount: 0,
+          rows: [],
+        });
+
         const response = await request(app.getHttpServer())
           .post('/auth/login')
-          .send(loginDto);
+          .send({ email: 'notfound@gmail.com', password: loginDto.password });
 
         expect(response.body).toMatchObject({
           statusCode: 401,
@@ -91,45 +125,147 @@ describe('AuthController', () => {
       });
     });
 
-    describe('when successfully sign in', () => {
-      beforeEach(() => {
-        runQueryMock.mockResolvedValue({
-          rowCount: 1,
-          rows: [
-            {
-              email: 'user@gmail.com',
-              name: 'user',
-              password:
-                '$2b$10$wd2FKgUyIztkelRHpkX7RuJN2ZgVMFBTr/BABiaqkSzDs3eZR9YWO',
-            },
-          ],
-        });
+    describe('when user exists', () => {
+      describe('and when password is not correct', () => {
+        it('should return status 401 and message', async () => {
+          const response = await request(app.getHttpServer())
+            .post('/auth/login')
+            .send({ email: loginDto.email, password: 'incorrect' });
 
-        jest
-          .spyOn(bcrypt, 'compare')
-          .mockImplementation(() => Promise.resolve(true));
-      });
-
-      it('should return access token', async () => {
-        const response = await request(app.getHttpServer())
-          .post('/auth/login')
-          .send(loginDto);
-
-        expect(response.body).toMatchObject({
-          accessToken: expect.any(String),
+          expect(response.body).toMatchObject({
+            statusCode: 401,
+            message: 'Unauthorized',
+          });
         });
       });
 
-      it('should return refresh token as cookie', async () => {
+      describe('and when password is correct', () => {
+        beforeEach(() => {
+          runQueryMock
+            .mockResolvedValueOnce({
+              command: 'SELECT',
+              rowCount: 1,
+              rows: [userRow],
+            })
+            .mockResolvedValueOnce({
+              command: 'UPDATE',
+              rowCount: 1,
+            });
+        });
+
+        it('should return access token', async () => {
+          const response = await request(app.getHttpServer())
+            .post('/auth/login')
+            .send(loginDto);
+
+          expect(response.body).toMatchObject({
+            accessToken: expect.any(String),
+          });
+        });
+
+        it('should return refresh token as cookie', async () => {
+          const response = await request(app.getHttpServer())
+            .post('/auth/login')
+            .send(loginDto);
+
+          const cookies = response.headers['set-cookie'];
+
+          refreshTokenCookie = cookies[0];
+
+          expect(cookies).toEqual(
+            expect.arrayContaining([expect.stringMatching(/refreshToken/)]),
+          );
+        });
+      });
+    });
+  });
+
+  describe('POST /refresh', () => {
+    describe('when refresh token is invalid', () => {
+      it('should return status 401', async () => {
         const response = await request(app.getHttpServer())
-          .post('/auth/login')
-          .send(loginDto);
+          .get('/auth/refresh')
+          .set('Cookie', [`refreshToken=123`]);
 
-        const cookies = response.headers['set-cookie'];
+        expect(response.body).toMatchObject({ statusCode: 401 });
+      });
+    });
 
-        expect(cookies).toEqual(
-          expect.arrayContaining([expect.stringMatching(/refreshToken/)]),
-        );
+    describe('when refresh token is valid', () => {
+      describe('and when user not found', () => {
+        it('should return status 401', async () => {
+          runQueryMock.mockResolvedValueOnce({
+            rows: [],
+          });
+
+          const response = await request(app.getHttpServer())
+            .get('/auth/refresh')
+            .set('Cookie', [refreshTokenCookie]);
+
+          expect(response.body).toMatchObject({ statusCode: 401 });
+        });
+      });
+
+      describe('and when refresh token is different than token from database', () => {
+        it('should return status 401', async () => {
+          runQueryMock.mockResolvedValueOnce({
+            rows: [
+              {
+                ...userRow,
+                refreshToken:
+                  '$2b$10$DkAnZ1DTQBJLcDpFMFOZ/OAppLY6n1QPRgO4STsLiGTL5XarjX9G2',
+              },
+            ],
+          });
+
+          const response = await request(app.getHttpServer())
+            .get('/auth/refresh')
+            .set('Cookie', [refreshTokenCookie]);
+
+          expect(response.body).toMatchObject({ statusCode: 401 });
+        });
+      });
+
+      describe('and when successfully found user with correct refresh token', () => {
+        beforeEach(async () => {
+          const refreshToken = refreshTokenCookie
+            .split('=')[1]
+            .split(';')
+            .shift();
+
+          const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+          runQueryMock.mockResolvedValue({
+            rows: [
+              {
+                ...userRow,
+                refreshToken: hashedRefreshToken,
+              },
+            ],
+          });
+        });
+
+        it('should return access token', async () => {
+          const response = await request(app.getHttpServer())
+            .get('/auth/refresh')
+            .set('Cookie', [refreshTokenCookie]);
+
+          expect(response.body).toMatchObject({
+            accessToken: expect.any(String),
+          });
+        });
+
+        it('should return refresh token as cookie', async () => {
+          const response = await request(app.getHttpServer())
+            .get('/auth/refresh')
+            .set('Cookie', [refreshTokenCookie]);
+
+          const cookies = response.headers['set-cookie'];
+
+          expect(cookies).toEqual(
+            expect.arrayContaining([expect.stringMatching(/refreshToken/)]),
+          );
+        });
       });
     });
   });

@@ -37,15 +37,13 @@ describe('UsersRepository', () => {
 
   describe('create method', () => {
     describe('when return valid data', () => {
-      let createdUser: User;
+      let createdUser: { id: string; name: string; email: string };
 
       beforeEach(() => {
         createdUser = {
           id: uuid(),
           name: 'user',
           email: 'user@gmail.com',
-          password:
-            '$2b$10$wd2FKgUyIztkelRHpkX7RuJN2ZgVMFBTr/BABiaqkSzDs3eZR9YWO',
         };
         runQueryMock.mockResolvedValue({
           rows: [createdUser],
