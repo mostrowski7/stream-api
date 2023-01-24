@@ -1,15 +1,15 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { Res, HttpCode } from '@nestjs/common/decorators';
-import { Public } from '../../common';
+import { Body, Controller, Post, Get, Req } from '@nestjs/common';
+import { Res, HttpCode, UseGuards } from '@nestjs/common/decorators';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
-import { Response } from 'express';
+import JwtRefreshTokenGuard from './guards/jwt-refresh-token.guard';
+import { RequestWithUser } from './auth.interface';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Public()
   @HttpCode(200)
   @Post('login')
   async login(
@@ -20,11 +20,37 @@ export class AuthController {
       loginDto,
     );
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: true,
-      maxAge: 24 * 60 * 60 * 1000,
+    const refreshTokenCookie = await this.authService.getRefreshTokenCookie(
+      refreshToken,
+    );
+
+    res.set('Set-Cookie', refreshTokenCookie);
+
+    return { accessToken };
+  }
+
+  @UseGuards(JwtRefreshTokenGuard)
+  @HttpCode(200)
+  @Get('refresh')
+  async refresh(
+    @Req() req: RequestWithUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { id, name, email } = req.user;
+
+    const accessToken = this.authService.getAccessToken({
+      sub: id,
+      email,
+      name,
     });
+
+    const refreshToken = await this.authService.getRefreshToken(id);
+
+    const refreshTokenCookie = await this.authService.getRefreshTokenCookie(
+      refreshToken,
+    );
+
+    res.set('Set-Cookie', refreshTokenCookie);
 
     return { accessToken };
   }

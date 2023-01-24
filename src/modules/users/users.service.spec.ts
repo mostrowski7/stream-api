@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InternalServerErrorException } from '@nestjs/common';
-import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 import UsersRepository from './users.repository';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -36,15 +35,13 @@ describe('UsersService', () => {
 
   describe('create method', () => {
     describe('when successfully create user', () => {
-      let createdUser: User;
+      let createdUser: { id: string; name: string; email: string };
 
       beforeEach(async () => {
         createdUser = {
           id: uuid(),
           name: 'user',
           email: 'user@gmail.com',
-          password:
-            '$2b$10$wd2FKgUyIztkelRHpkX7RuJN2ZgVMFBTr/BABiaqkSzDs3eZR9YWO',
         };
       });
 

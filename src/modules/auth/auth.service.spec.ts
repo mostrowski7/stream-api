@@ -1,25 +1,29 @@
 import { ConfigModule } from '@nestjs/config';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
-import { v4 as uuid } from 'uuid';
 import DatabaseService from '../database/database.service';
 import { User } from '../users/entities/user.entity';
 import UsersRepository from '../users/users.repository';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
-import * as bcrypt from 'bcrypt';
+import {
+  runQueryMock,
+  getUpdateParamsAndColumnsMock,
+} from '../database/database.mock';
 
 describe('AuthService', () => {
-  const hashedPassword =
-    '$2b$12$vrs4J5zfhOiOw3vjgDuVkOMF8QblLoff9p3FrmceXfy.2nZMvECJq';
-  let authService: AuthService,
-    runQueryMock: jest.Mock,
-    loginDto: Pick<User, 'email' | 'password'>,
-    foundUser: User;
+  const userRow = {
+    id: 'd2771ffe-8834-4c16-ba1b-9097e5a9f1d2',
+    email: 'user@gmail.com',
+    name: 'user',
+    password: '$2b$10$E0QnOkL0M7zNDh4jpiViY.TNPGnokaW838iw7HsYWHAkh7FnroskW',
+    refreshToken:
+      '$2b$10$gI8lA4stVVjPaUGnzLt7vONWTBApWcNNTV32f5L9ZurmyOzhLrshe',
+  };
+  let authService: AuthService, loginDto: Pick<User, 'email' | 'password'>;
 
   beforeEach(async () => {
-    runQueryMock = jest.fn();
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot(),
@@ -35,6 +39,7 @@ describe('AuthService', () => {
           provide: DatabaseService,
           useValue: {
             runQuery: runQueryMock,
+            getUpdateParamsAndColumns: getUpdateParamsAndColumnsMock,
           },
         },
       ],
@@ -49,17 +54,11 @@ describe('AuthService', () => {
         email: 'user@gmail.com',
         password: 'password',
       };
-
-      foundUser = {
-        id: uuid(),
-        email: loginDto.email,
-        name: 'user',
-        password: hashedPassword,
-      };
     });
+
     describe('when user not found', () => {
       it('should throws unauthorized exception', async () => {
-        runQueryMock.mockResolvedValue({
+        runQueryMock.mockResolvedValueOnce({
           rowCount: 0,
         });
 
@@ -73,27 +72,24 @@ describe('AuthService', () => {
       beforeEach(() => {
         runQueryMock.mockResolvedValue({
           rowCount: 1,
-          rows: [foundUser],
+          rows: [userRow],
         });
       });
 
       describe('and when password is wrong', () => {
         it('should throws unauthorized exception', async () => {
-          jest
-            .spyOn(bcrypt, 'compare')
-            .mockImplementation(() => Promise.resolve(false));
-
-          await expect(authService.login(loginDto)).rejects.toThrow(
-            new UnauthorizedException(),
-          );
+          await expect(
+            authService.login({ email: loginDto.email, password: 'wrong' }),
+          ).rejects.toThrow(new UnauthorizedException());
         });
       });
 
       describe('and when password is correct', () => {
         it('should return access token and refresh token', async () => {
-          jest
-            .spyOn(bcrypt, 'compare')
-            .mockImplementation(() => Promise.resolve(true));
+          getUpdateParamsAndColumnsMock.mockReturnValue({
+            columns: 'refresh_token = $2',
+            params: ['hashedRefreshToken'],
+          });
 
           const result = await authService.login(loginDto);
 
