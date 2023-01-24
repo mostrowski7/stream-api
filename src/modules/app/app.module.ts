@@ -3,7 +3,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { Environment, validate } from '../../config/env.validation';
-import appConfig from '../../config/app.config';
 import DatabaseModule from '../database/database.module';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
@@ -11,7 +10,6 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      load: [appConfig],
       cache: true,
       validate,
     }),
