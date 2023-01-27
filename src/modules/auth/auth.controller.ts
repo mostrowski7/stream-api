@@ -16,9 +16,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body() loginDto: LoginDto,
   ) {
-    const { accessToken, refreshToken } = await this.authService.login(
-      loginDto,
-    );
+    const { name, email, accessToken, refreshToken } =
+      await this.authService.login(loginDto);
 
     const refreshTokenCookie = await this.authService.getRefreshTokenCookie(
       refreshToken,
@@ -26,7 +25,7 @@ export class AuthController {
 
     res.set('Set-Cookie', refreshTokenCookie);
 
-    return { accessToken };
+    return { name, email, accessToken };
   }
 
   @UseGuards(JwtRefreshTokenGuard)
