@@ -25,12 +25,16 @@ export class AuthService {
 
       const refreshToken = await this.getRefreshToken(user.id);
 
+      const accessToken = this.getAccessToken({
+        sub: user.id,
+        email,
+        name: user.name,
+      });
+
       return {
-        accessToken: this.getAccessToken({
-          sub: user.id,
-          email,
-          name: user.name,
-        }),
+        name: user.name,
+        email,
+        accessToken,
         refreshToken,
       };
     } catch (error) {
