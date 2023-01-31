@@ -43,6 +43,15 @@ class EnvironmentVariables {
 
   @IsString()
   CORS_ORIGIN: string;
+
+  @IsNumber()
+  MAX_STORAGE_SIZE: number;
+
+  @IsNumber()
+  MAX_HEAP_MEMORY_SIZE: number;
+
+  @IsNumber()
+  MAX_RSS_MEMORY_SIZE: number;
 }
 
 export function validate(config: Record<string, unknown>) {
