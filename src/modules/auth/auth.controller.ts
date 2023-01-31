@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login-dto';
 import JwtRefreshTokenGuard from './guards/jwt-refresh-token.guard';
 import { RequestWithUser } from './auth.interface';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -19,9 +20,8 @@ export class AuthController {
     const { name, email, accessToken, refreshToken } =
       await this.authService.login(loginDto);
 
-    const refreshTokenCookie = await this.authService.getRefreshTokenCookie(
-      refreshToken,
-    );
+    const refreshTokenCookie =
+      this.authService.getRefreshTokenCookie(refreshToken);
 
     res.set('Set-Cookie', refreshTokenCookie);
 
@@ -45,12 +45,21 @@ export class AuthController {
 
     const refreshToken = await this.authService.getRefreshToken(id);
 
-    const refreshTokenCookie = await this.authService.getRefreshTokenCookie(
-      refreshToken,
-    );
+    const refreshTokenCookie =
+      this.authService.getRefreshTokenCookie(refreshToken);
 
     res.set('Set-Cookie', refreshTokenCookie);
 
     return { accessToken };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
+  @Get('logout')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    const logoutRefreshTokenCookie =
+      this.authService.getLogoutRefreshTokenCookie();
+
+    res.set('Set-Cookie', logoutRefreshTokenCookie);
   }
 }
