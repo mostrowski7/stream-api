@@ -15,7 +15,12 @@ export class AuthService {
     private readonly usersService: UsersService,
   ) {}
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<{
+    name: string;
+    email: string;
+    accessToken: string;
+    refreshToken: string;
+  }> {
     const { email, password } = loginDto;
 
     try {
@@ -84,11 +89,15 @@ export class AuthService {
     return refreshToken;
   }
 
-  async getRefreshTokenCookie(refreshToken: string): Promise<string> {
+  getRefreshTokenCookie(refreshToken: string): string {
     const expirationTime = this.configService.get<number>(
       'JWT_REFRESH_EXPIRATION_TIME',
     );
 
     return `refreshToken=${refreshToken}; Secure; HttpOnly; Path=/; Max-Age=${expirationTime}`;
+  }
+
+  getLogoutRefreshTokenCookie(): string {
+    return `refreshToken=; Secure; HttpOnly; Path=/; Max-Age=0`;
   }
 }
