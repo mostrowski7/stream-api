@@ -13,8 +13,17 @@ import { User } from './entities/user.entity';
 
 @Injectable()
 class UsersRepository {
+  /**
+   * @ignore
+   */
   constructor(private readonly databaseService: DatabaseService) {}
 
+  /**
+   * This method runs query and create a new user
+   * Username and email should be unique
+   * @param createUserDto User data to create
+   * @returns A promise with created user id, name and email
+   */
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {
       const databaseResponse = await this.databaseService.runQuery(
@@ -38,6 +47,11 @@ class UsersRepository {
     }
   }
 
+  /**
+   * This method runs query and select user by email
+   * @param email User email
+   * @returns A promise with found user
+   */
   async findByEmail(email: string): Promise<User> {
     const databaseResponse = await this.databaseService.runQuery(
       `
@@ -54,6 +68,11 @@ class UsersRepository {
     return plainToInstance(User, databaseResponse?.rows[0]);
   }
 
+  /**
+   * This method runs query and select user by id
+   * @param id User id
+   * @returns A promise with found user
+   */
   async getById(id: string): Promise<User> {
     const databaseResponse = await this.databaseService.runQuery(
       `
@@ -67,6 +86,11 @@ class UsersRepository {
     return plainToInstance(User, databaseResponse?.rows[0]);
   }
 
+  /**
+   * This method runs query and update user data by id
+   * @param id User id
+   * @param data User data to update
+   */
   async update(id: string, data: Partial<User>): Promise<void> {
     const { params, columns } =
       this.databaseService.getUpdateParamsAndColumns(data);
