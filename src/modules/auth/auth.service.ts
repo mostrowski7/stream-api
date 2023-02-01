@@ -15,7 +15,12 @@ export class AuthService {
     private readonly usersService: UsersService,
   ) {}
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<{
+    name: string;
+    email: string;
+    accessToken: string;
+    refreshToken: string;
+  }> {
     const { email, password } = loginDto;
 
     try {
