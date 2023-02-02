@@ -10,6 +10,9 @@ import { CustomHealthIndicator } from './health.indicator';
 
 @Controller('health')
 export class HealthController {
+  /**
+   * @ignore
+   */
   constructor(
     private readonly health: HealthCheckService,
     private readonly memory: MemoryHealthIndicator,
@@ -17,6 +20,11 @@ export class HealthController {
     private readonly customHealthIndicator: CustomHealthIndicator,
     private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * This route checks application health
+   * @returns A storage, memory and database status
+   */
 
   @Get()
   @HealthCheck()

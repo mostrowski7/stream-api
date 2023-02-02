@@ -9,8 +9,17 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
+  /**
+   * @ignore
+   */
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * This route authenticates the user
+   * @param loginDto User email and password
+   * @returns A object with username, email, access token
+   * and cookie with refresh token
+   */
   @HttpCode(200)
   @Post('login')
   async login(
@@ -28,6 +37,10 @@ export class AuthController {
     return { name, email, accessToken };
   }
 
+  /**
+   * This route renews access and refresh token
+   * @returns A object with access token and cookie with refresh token
+   */
   @UseGuards(JwtRefreshTokenGuard)
   @HttpCode(200)
   @Get('refresh')
@@ -53,6 +66,10 @@ export class AuthController {
     return { accessToken };
   }
 
+  /**
+   * This route logs out the user from the system
+   * @returns Cookie with refresh token
+   */
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
   @Get('logout')

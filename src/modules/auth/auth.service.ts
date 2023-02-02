@@ -15,6 +15,11 @@ export class AuthService {
     private readonly usersService: UsersService,
   ) {}
 
+  /**
+   * This method identifies, verify user and signs tokens
+   * @param loginDto User email and password
+   * @returns A promise with tokens, username and email
+   */
   async login(loginDto: LoginDto): Promise<{
     name: string;
     email: string;
@@ -47,11 +52,22 @@ export class AuthService {
     }
   }
 
+  /**
+   * This method compares plaintext and hashed password
+   * @param plaintext Plaintext user password
+   * @param hash Hashed user password
+   */
   async compareUserPasswords(plaintext: string, hash: string): Promise<void> {
     const isCorrect = await bcrypt.compare(plaintext, hash);
     if (!isCorrect) throw new UnauthorizedException();
   }
 
+  /**
+   * This method identifies and verify if the user can refresh the token
+   * @param id User id
+   * @param refreshToken Plaintext refresh token
+   * @returns A promise with found user
+   */
   async getAuthenticatedUser(id: string, refreshToken: string): Promise<User> {
     const user = await this.usersService.getById(id);
 
@@ -60,6 +76,11 @@ export class AuthService {
     }
   }
 
+  /**
+   * This method signs jwt access token
+   * @param payload Specify what should be in token payload
+   * @returns A promise with signed token
+   */
   getAccessToken(payload: Payload): string {
     return this.jwtService.sign(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
@@ -67,6 +88,11 @@ export class AuthService {
     });
   }
 
+  /**
+   * This method signs and update user refresh token
+   * @param sub Token id
+   * @returns A promise with signed token
+   */
   async getRefreshToken(sub: string): Promise<string> {
     const refreshToken = this.jwtService.sign(
       {
@@ -89,6 +115,11 @@ export class AuthService {
     return refreshToken;
   }
 
+  /**
+   * This method creates cookie with specific refresh token and expiration time
+   * @param refreshToken User refresh token
+   * @returns A cookie string
+   */
   getRefreshTokenCookie(refreshToken: string): string {
     const expirationTime = this.configService.get<number>(
       'JWT_REFRESH_EXPIRATION_TIME',
@@ -97,6 +128,10 @@ export class AuthService {
     return `refreshToken=${refreshToken}; Secure; HttpOnly; Path=/; Max-Age=${expirationTime}`;
   }
 
+  /**
+   * This method creates log out cookie with empty refresh token
+   * @returns A cookie string
+   */
   getLogoutRefreshTokenCookie(): string {
     return `refreshToken=; Secure; HttpOnly; Path=/; Max-Age=0`;
   }
