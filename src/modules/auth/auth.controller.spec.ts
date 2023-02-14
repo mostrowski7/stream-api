@@ -22,7 +22,7 @@ describe('AuthController', () => {
   const userRow = {
     id: 'd2771ffe-8834-4c16-ba1b-9097e5a9f1d2',
     email: 'user@gmail.com',
-    name: 'user',
+    username: 'user',
     password: '$2b$10$E0QnOkL0M7zNDh4jpiViY.TNPGnokaW838iw7HsYWHAkh7FnroskW',
     refreshToken:
       '$2b$10$gI8lA4stVVjPaUGnzLt7vONWTBApWcNNTV32f5L9ZurmyOzhLrshe',

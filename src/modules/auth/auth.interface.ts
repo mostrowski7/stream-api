@@ -3,7 +3,7 @@ import { User } from '../users/entities/user.entity';
 
 export interface Payload {
   sub: string;
-  name: string;
+  username: string;
   email: string;
 }
 

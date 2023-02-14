@@ -9,7 +9,7 @@ import { BadRequestException } from '@nestjs/common/exceptions/bad-request.excep
 
 describe('UsersService', () => {
   const createUserData: CreateUserDto = {
-    name: 'user',
+    username: 'user',
     email: 'user@gmail.com',
     password: 'password',
   };
@@ -35,12 +35,12 @@ describe('UsersService', () => {
 
   describe('create method', () => {
     describe('when successfully create user', () => {
-      let createdUser: { id: string; name: string; email: string };
+      let createdUser: { id: string; username: string; email: string };
 
       beforeEach(async () => {
         createdUser = {
           id: uuid(),
-          name: 'user',
+          username: 'user',
           email: 'user@gmail.com',
         };
       });

@@ -39,7 +39,7 @@ describe('UsersController (e2e)', () => {
   describe('POST /users', () => {
     beforeEach(() => {
       createUserDto = {
-        name: 'name',
+        username: 'username',
         email: 'user@gmail.com',
         password: 'password',
       };
@@ -56,7 +56,7 @@ describe('UsersController (e2e)', () => {
           id: expect.stringMatching(
             /[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}/,
           ),
-          name: createUserDto.name,
+          username: createUserDto.username,
           email: createUserDto.email,
         });
       });
@@ -89,7 +89,7 @@ describe('UsersController (e2e)', () => {
         const response = await request(app.getHttpServer())
           .post('/users')
           .send({
-            name: createUserDto.name,
+            username: createUserDto.username,
             password: createUserDto.password,
             email: 'invalid',
           });
