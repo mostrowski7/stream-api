@@ -14,7 +14,7 @@ describe('UsersRepository', () => {
   let runQueryMock: jest.Mock;
   let usersRepository: UsersRepository;
   const createUserData: CreateUserDto = {
-    name: 'user',
+    username: 'user',
     email: 'user@gmail.com',
     password: 'password',
   };
@@ -37,12 +37,12 @@ describe('UsersRepository', () => {
 
   describe('create method', () => {
     describe('when return valid data', () => {
-      let createdUser: { id: string; name: string; email: string };
+      let createdUser: { id: string; username: string; email: string };
 
       beforeEach(() => {
         createdUser = {
           id: uuid(),
-          name: 'user',
+          username: 'user',
           email: 'user@gmail.com',
         };
         runQueryMock.mockResolvedValue({

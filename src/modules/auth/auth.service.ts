@@ -21,7 +21,7 @@ export class AuthService {
    * @returns A promise with tokens, username and email
    */
   async login(loginDto: LoginDto): Promise<{
-    name: string;
+    username: string;
     email: string;
     accessToken: string;
     refreshToken: string;
@@ -38,11 +38,11 @@ export class AuthService {
       const accessToken = this.getAccessToken({
         sub: user.id,
         email,
-        name: user.name,
+        username: user.username,
       });
 
       return {
-        name: user.name,
+        username: user.username,
         email,
         accessToken,
         refreshToken,

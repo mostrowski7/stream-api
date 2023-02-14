@@ -26,7 +26,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body() loginDto: LoginDto,
   ) {
-    const { name, email, accessToken, refreshToken } =
+    const { username, email, accessToken, refreshToken } =
       await this.authService.login(loginDto);
 
     const refreshTokenCookie =
@@ -34,7 +34,7 @@ export class AuthController {
 
     res.set('Set-Cookie', refreshTokenCookie);
 
-    return { name, email, accessToken };
+    return { username, email, accessToken };
   }
 
   /**
@@ -48,12 +48,12 @@ export class AuthController {
     @Req() req: RequestWithUser,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { id, name, email } = req.user;
+    const { id, username, email } = req.user;
 
     const accessToken = this.authService.getAccessToken({
       sub: id,
       email,
-      name,
+      username,
     });
 
     const refreshToken = await this.authService.getRefreshToken(id);

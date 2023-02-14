@@ -20,19 +20,19 @@ class UsersRepository {
 
   /**
    * This method runs query and create a new user
-   * Username and email should be unique
+   * username and email should be unique
    * @param createUserDto User data to create
-   * @returns A promise with created user id, name and email
+   * @returns A promise with created user id, username and email
    */
   async create(createUserDto: CreateUserDto): Promise<User> {
     try {
       const databaseResponse = await this.databaseService.runQuery(
         `
-         INSERT INTO users (name, email, password)
+         INSERT INTO users (username, email, password)
          VALUES ($1, $2, $3)
-         RETURNING id, name, email
+         RETURNING id, username, email
        `,
-        [createUserDto.name, createUserDto.email, createUserDto.password],
+        [createUserDto.username, createUserDto.email, createUserDto.password],
       );
 
       return plainToInstance(User, databaseResponse.rows[0]);
@@ -55,7 +55,7 @@ class UsersRepository {
   async findByEmail(email: string): Promise<User> {
     const databaseResponse = await this.databaseService.runQuery(
       `
-        SELECT id, email, name, password, refresh_token as "refreshToken"
+        SELECT id, email, username, password, refresh_token as "refreshToken"
         FROM users
         WHERE email = $1
       `,
@@ -76,7 +76,7 @@ class UsersRepository {
   async getById(id: string): Promise<User> {
     const databaseResponse = await this.databaseService.runQuery(
       `
-        SELECT id, email, name, password, refresh_token as "refreshToken"
+        SELECT id, email, username, password, refresh_token as "refreshToken"
         FROM users
         WHERE id = $1
       `,
