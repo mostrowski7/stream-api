@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import * as request from 'supertest';
 import * as cookieParser from 'cookie-parser';
@@ -27,7 +27,7 @@ describe('AuthController', () => {
     refreshToken:
       '$2b$10$gI8lA4stVVjPaUGnzLt7vONWTBApWcNNTV32f5L9ZurmyOzhLrshe',
   };
-  let app: INestApplication, loginDto: LoginDto, refreshTokenCookie: string;
+  let app: INestApplication, loginDto: LoginDto, jwtService: JwtService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -59,6 +59,8 @@ describe('AuthController', () => {
     app.use(cookieParser());
 
     await app.init();
+
+    jwtService = module.get<JwtService>(JwtService);
   });
 
   describe('POST /login', () => {
@@ -170,8 +172,6 @@ describe('AuthController', () => {
 
           const cookies = response.headers['set-cookie'];
 
-          refreshTokenCookie = cookies[0];
-
           expect(cookies).toEqual(
             expect.arrayContaining([expect.stringMatching(/refreshToken/)]),
           );
@@ -181,6 +181,16 @@ describe('AuthController', () => {
   });
 
   describe('POST /refresh', () => {
+    let refreshToken: string;
+    let refreshTokenCookie: string;
+
+    beforeEach(() => {
+      refreshToken = jwtService.sign({
+        sub: userRow.id,
+      });
+      refreshTokenCookie = `refreshToken=${refreshToken}`;
+    });
+
     describe('when refresh token is invalid', () => {
       it('should return status 401', async () => {
         const response = await request(app.getHttpServer())
@@ -228,11 +238,6 @@ describe('AuthController', () => {
 
       describe('and when successfully found user with correct refresh token', () => {
         beforeEach(async () => {
-          const refreshToken = refreshTokenCookie
-            .split('=')[1]
-            .split(';')
-            .shift();
-
           const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
 
           runQueryMock.mockResolvedValue({
