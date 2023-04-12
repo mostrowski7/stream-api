@@ -4,13 +4,8 @@ services:
   api:
     build:
       context: .
-    environment:
-      - POSTGRES_HOST
-      - POSTGRES_PORT
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
-      - POSTGRES_TEST_HOST
+    env_file:
+      - .env
     ports:
       - '3001:3001'
     depends_on:

@@ -42,7 +42,6 @@ export class AuthController {
    * @returns A object with access token and cookie with refresh token
    */
   @UseGuards(JwtRefreshTokenGuard)
-  @HttpCode(200)
   @Get('refresh')
   async refresh(
     @Req() req: RequestWithUser,
@@ -71,7 +70,6 @@ export class AuthController {
    * @returns Cookie with refresh token
    */
   @UseGuards(JwtAuthGuard)
-  @HttpCode(200)
   @Get('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
     const logoutRefreshTokenCookie =
